@@ -39,37 +39,40 @@ testing         <- RawData[-inTrain,]
 # RF does not require cross validation to properly test OOB performance.
 
 # RF for casual
-RFfit <- randomForest(RawData$casual~.,  
+set.seed(415)
+RFfit <- randomForest(RawData$casual~hour + year + humidity + temp + atemp + workingday + weekday,  
                       data = RawData[-(10:11)], 
-                      mtry = 3, 
-                      ntree = 4000)
+                      mtry = 5, 
+                      ntree = 2000,
+                      importance = TRUE)
 save(RFfit, file = "RFfit.rda")
 
 load("RFfit.rda")
 prediction <- round(predict(RFfit, newdata = RawData[-(10:11)]))
 save(prediction, file = "prediction.rda")
 load("prediction.rda")
-# Optimistic estimate of RMSLE for RF for casual = 0.419. Not very good.
+# Optimistic estimate of RMSLE for RF for casual = 0.337. 
 rmsle(RawData$casual, prediction)
 
 # RF for registered 
-RFfit1 <- randomForest(RawData$registered~.,  
+RFfit1 <- randomForest(RawData$registered~hour + year + humidity + temp + atemp + workingday + weekday,  
                        data = RawData[-c(9,11)], 
-                       mtry = 3, 
-                       ntree = 4000)
+                       mtry = 5, 
+                       ntree = 2000,
+                       importance = TRUE)
 save(RFfit1, file = "RFfit1.rda")
 
 load("RFfit1.rda")
 prediction12 <- predict(RFfit1, newdata = RawData[-c(9,11)])
 save(prediction12, file = "prediction12.rda")
 load("prediction12.rda")
-# Optimistic estimate of RMSLE for RF for registered = 0.444. Not very good at all.
+# Optimistic estimate of RMSLE for RF for registered = 0.231. Seems quite promising.
 rmsle(RawData$registered, prediction12)
 
 # RMSLE estimate
 
-# Optimistic estimate of RMSLE for RF for sum of registered and casual = 0.435. 
-# Not very promising, but worth a try.
+# Optimistic estimate of RMSLE for RF for sum of registered and casual = 0.229. 
+# Very promising, definitely worth a try.
 pr<- (prediction  + prediction12)
 rmsle(RawData$count, pr)
 
@@ -214,8 +217,8 @@ rmsle(RawData$count, (prediction+prediction1))
 # Making final predictions on kaggle test set and making a submission csv.
 # Predictions from all the models were submited to kaggleone by one, and 
 # conditional inference tree turned out to be the best with RMSLE 0.50962.
-p1 <- predict(ctree, newdata = TestData)
-p2 <- predict(ctree1, newdata = TestData)
+p1 <- predict(RFfit, newdata = TestData)
+p2 <- predict(RFfit1, newdata = TestData)
 
 TestData$count = round(p1 + p2)
 save(file="TestData.rda", x=TestData)
